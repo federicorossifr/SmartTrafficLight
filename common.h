@@ -1,0 +1,14 @@
+/*
+	ADDRESSES OF SKY MOTES IN COOJA FOLLOWING CREATION ORDER
+	TO BE MODIFIED IN CASE OF DEPLOY ON PHYSICAL NODES
+*/
+#define TL1 1
+#define TL2 2
+#define G1 3
+#define G2 4
+
+/*
+	SHARED TYPES AMONG THE MOTES
+*/
+typedef enum { NORMAL,EMERGENCY } vehicle_t;
+typedef enum { MAIN, SECOND} road_t;
