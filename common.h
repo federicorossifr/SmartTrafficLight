@@ -37,6 +37,16 @@
 typedef enum { NORMAL,EMERGENCY } vehicle_t;
 typedef enum { MAIN, SECOND }  road_t;
 typedef enum { false, true} bool;
+typedef struct {
+	vehicle_t req_v;
+	road_t 	req_r;
+} cross_request_t;
+
+typedef struct {
+	int temperature;
+	int humidity;
+} measurement_t;
+
 linkaddr_t tl1 = {{TL1_ADDR,0}};
 linkaddr_t tl2 = {{TL2_ADDR,0}};
 linkaddr_t g1  = {{G1_ADDR,0}};  
