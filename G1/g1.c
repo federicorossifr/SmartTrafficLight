@@ -99,6 +99,7 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 				pending_vehicle = NORMAL;
 			if(!crossing) { //If a vehicle is not being consiered for crossing send the request
 				//SEND BROADCAST
+				cross_request_t req = {pending_vehicle,MAIN};
 				crossing = true;
 			}
 			else { // If a vehicle is already considered for crossing enqueue it
@@ -120,6 +121,7 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 			crossing = false;
 			if(pending_request) {
 				//SEND BROADCAST
+				cross_request_t req = {pending_vehicle,MAIN};				
 				pending_request = false;
 			}
 		} else if(etimer_expired(&sense_timer)) {
