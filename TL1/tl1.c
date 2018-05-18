@@ -7,8 +7,16 @@ AUTOSTART_PROCESSES(&traffic_sense_light_process);
 int battery = MAX_BATTERY;
 
 bool crossing = false;
+bool need_notification = false;
 cross_request_t* main_road_req = 0;
 cross_request_t* second_road_req = 0;
+
+cross_request_t* decide() {
+	if(!second_road_req) return main_road_req;
+	if(!main_road_req) return second_road_req;
+	if(main_road_req->req_v >= second_road_req->req_v) return main_road_req;
+	return second_road_req;
+}
 
 static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno) {
 }
@@ -21,9 +29,9 @@ static void timedout_runicast(struct runicast_conn *c, const linkaddr_t *to, uin
 
 
 static void broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from){
-	if(get_index(from) == 2) //REQUEST FROM G1
+	if(get_index(from) == G1_ADDR && !main_road_req) //REQUEST FROM G1
 		main_road_req = (cross_request_t*)packetbuf_dataptr();
-	else if(get_index(from) == 4)
+	else if(get_index(from) == G2_ADDR && !second_road_req)
 		second_road_req = (cross_request_t*)packetbuf_dataptr();
 	process_post(&traffic_sense_light_process,CROSS_REQUEST,packetbuf_dataptr());			
 }
@@ -89,12 +97,14 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 				etimer_reset(&base_sense_timer);
 			}
 		}
+
 		if(etimer_expired(&reduced_sense_timer) && high_active) {
 			if(battery <= THRESHOLD_HIGH && battery > THRESHOLD_LOW) {
 				do_sense();
 				etimer_reset(&reduced_sense_timer);
 			}
 		}
+
 		if(etimer_expired(&constrained_sense_timer) && low_active) {
 			if(battery <= THRESHOLD_LOW && battery > 0) {
 				do_sense();
@@ -111,18 +121,37 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 			}
 		}
 
-		if(ev == CROSS_REQUEST) {
-		} 
-
 		if(!high_active && THRESHOLD_LOW < battery && battery <= THRESHOLD_HIGH) {
 			etimer_set(&reduced_sense_timer,CLOCK_SECOND*PERIOD_HIGH);
 			full_active = false;
 			high_active = true;
 		}
+
+		if(crossing && etimer_expired(&cross_timer)) {
+			crossing = false;
+			if(need_notification) { //NOTIFY CROSS
+				measurement_t m = {0,0,1};
+				packetbuf_copyfrom(&m,sizeof(m));
+				runicast_send(&runicast, &g1, MAX_RETRANSMISSIONS); // THIS CHANGE BETWEEN THE TWO TLs
+			}
+
+		}
+
 		if(!low_active && 0 < battery && battery <= THRESHOLD_LOW) {
 			etimer_set(&constrained_sense_timer,CLOCK_SECOND*PERIOD_LOW);
 			high_active = false;	
 			low_active = true;	
+		}
+
+		if(main_road_req || second_road_req) { //EVERY TL WILL DECIDE THE SAME THING AND WAIT AS WELL
+			//PENDING REQUESTS
+			cross_request_t* decided = decide();
+			if(decided == main_road_req) { 
+				main_road_req = 0;
+				need_notification = true; //THIS CHANGE BETWEEN THE TWO TLs
+			} else second_road_req = 0; 
+
+			etimer_set(&cross_timer,CLOCK_SECOND*CROSS_PERIOD);
 		}
 	}
 	PROCESS_END();
