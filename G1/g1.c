@@ -4,8 +4,8 @@ static struct broadcast_conn broadcast;
 
 const linkaddr_t* last_runicast_recv;
 
-PROCESS(keyboard_emergency_process, "SENSE_LIGHT_PROCESS");
-PROCESS(sense_traffic_control_process, "TRAFFIC_CONTROL_PROCESS");
+PROCESS(keyboard_emergency_process, "KEYBOARD_EMERGENCY_PROCESS");
+PROCESS(sense_traffic_control_process, "SENSE_TRAFFIC_CONTROL_PROCESS");
 AUTOSTART_PROCESSES(&sense_traffic_control_process,&keyboard_emergency_process);
 
 int temp_m[4];
@@ -23,13 +23,12 @@ char* emergency_message = 0;
 
 static void display_string() {
 	char* em_msg = (emergency_message!=0)?emergency_message:"";
-	printf("%s + %d + %d\n",em_msg,last_tmp_avg,last_hum_avg);
-	free(emergency_message); emergency_message = 0;
+	//printf("%s + %d + %d\n",em_msg,last_tmp_avg,last_hum_avg);
 }
 
 static void insert_measurement(measurement_t measurement,const linkaddr_t* sender) {
 	int index = -1;
-	if(sender == 0) index = 2;
+	if(sender == 0) index = G1_INDEX;
 	else index = get_index(sender);
 	temp_m[index] = measurement.temperature;
 	hum_m[index] = measurement.humidity;
@@ -49,13 +48,14 @@ static void compute_averages() {
 
 
 static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno) {
-	last_runicast_recv = from;
 	//ALL RUNICAST MESSAGE ARE OF TYPE measurement_t
 	//IF is_cross FIELD is equal to 1 it is a CROSS ACK FROM attached TL sensor
 	measurement_t* m = (measurement_t*)packetbuf_dataptr();
 	if(m->is_cross) {
 		process_post(&sense_traffic_control_process,CROSS_COMPLETED,packetbuf_dataptr());			
 	} else {
+		measurement_t* measurement = (measurement_t*)packetbuf_dataptr();
+		insert_measurement(*measurement,from);		
 		process_post(&sense_traffic_control_process,VAL_RECEIVED_EVENT,packetbuf_dataptr());							
 	}
 }
@@ -97,32 +97,27 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 		PROCESS_WAIT_EVENT();
 		
 		if(ev == sensors_event && data == &button_sensor) { //PRESSED BUTTON
-			//printf("BUTTON PRESSED\n");			
 			if(pending_request) continue;
-			etimer_set(&second_click_timer,CLOCK_SECOND*SECOND_CLICK_WAIT);
+			etimer_set(&second_click_timer,CLOCK_SECOND*SECOND_CLICK_WAIT*2);
 			PROCESS_WAIT_EVENT();
 			if(ev == sensors_event && data == &button_sensor) {//BUTTON PRESSED SECOND TIME
 				pending_vehicle = EMERGENCY;
-				//printf("BUTTON PRESSED 2 TIMES\n");
+				printf("EMERGENCY ON MAIN!!\n");
 		    }
 			else { //BUTTON NOT PRESSED SECOND TIME
-				//printf("BUTTON PRESSED 1 TIME\n");
 				pending_vehicle = NORMAL;
 			}
 			if(!crossing) { //If a vehicle is not being consiered for crossing send the request
-				cross_request_t req = {pending_vehicle,MAIN};
-				packetbuf_copyfrom(&req,sizeof(cross_request_t));	
-				printf("SENDING BROADCAST REQUEST TO TLs\n");
+				char* v_type = (pending_vehicle == NORMAL)?"n":"e";
+				packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
 				broadcast_send(&broadcast);				
 				crossing = true;
 			}
 			else { // If a vehicle is already considered for crossing enqueue it
+				printf("A VEHICLE IS ALREADY CROSSING, SAVING THE REQUEST FOR LATER\n");
 				pending_request = true;
 			}
 		} else if(ev == VAL_RECEIVED_EVENT) {
-			measurement_t* measurement = (measurement_t*)data;
-			printf("Received temperature %d\n",measurement->temperature);
-			insert_measurement(*measurement,last_runicast_recv);
 			if(samples == 3) {
 				int tmp = (sht11_sensor.value(SHT11_SENSOR_TEMP)/10-396)/10;
 				int hum = sht11_sensor.value(SHT11_SENSOR_HUMIDITY)/41;

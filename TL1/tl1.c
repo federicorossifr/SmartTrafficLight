@@ -11,12 +11,6 @@ bool need_notification = false;
 cross_request_t* main_road_req = 0;
 cross_request_t* second_road_req = 0;
 
-cross_request_t* decide() {
-	if(!second_road_req) return main_road_req;
-	if(!main_road_req) return second_road_req;
-	if(main_road_req->req_v >= second_road_req->req_v) return main_road_req;
-	return second_road_req;
-}
 
 static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno) {
 }
@@ -29,10 +23,18 @@ static void timedout_runicast(struct runicast_conn *c, const linkaddr_t *to, uin
 
 
 static void broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from){
-	if(get_index(from) == G1_ADDR && !main_road_req) //REQUEST FROM G1
-		main_road_req = (cross_request_t*)packetbuf_dataptr();
-	else if(get_index(from) == G2_ADDR && !second_road_req)
-		second_road_req = (cross_request_t*)packetbuf_dataptr();
+	char* v_type = (char*)packetbuf_dataptr();
+	printf("RECEIVED CROSSING REQUEST FROM: %d.%d FOR VEHICLE: %s\n",from->u8[0],from->u8[1],v_type);
+	if(get_index(from) == G1_INDEX && !main_road_req) {
+		printf("CONSIDERING FOR SCHEDULING VEHICLE FROM G1\n");
+		main_road_req = malloc(sizeof(cross_request_t));
+		main_road_req->req_v = (strcmp(v_type,"n")==0)?NORMAL:EMERGENCY;
+	}
+	else if(get_index(from) == G2_INDEX && !second_road_req) {
+		printf("CONSIDERING FOR SCHEDULING VEHICLE FROM G2\n");
+		second_road_req = malloc(sizeof(cross_request_t));
+		second_road_req->req_v = (strcmp(v_type,"n")==0)?NORMAL:EMERGENCY;
+	}
 	process_post(&traffic_sense_light_process,CROSS_REQUEST,packetbuf_dataptr());			
 }
 
@@ -47,23 +49,7 @@ static void close_all() {
 	broadcast_close(&broadcast);
 }
 
-static void do_toggle(unsigned char ledv) {
-	if(battery > 20)
-		battery=max(0,battery-ON_TOGGLE_DRAIN);		
-	leds_toggle(ledv);
-}
 
-static void do_sense() {
-	SENSORS_ACTIVATE(sht11_sensor);		
-	battery=max(0,battery-ON_SENSE_DRAIN);
-	int tmp = (sht11_sensor.value(SHT11_SENSOR_TEMP)/10-396)/10;
-	int hum = sht11_sensor.value(SHT11_SENSOR_HUMIDITY)/41;
-	measurement_t m = {tmp,hum};
-	packetbuf_copyfrom(&m,sizeof(measurement_t));
-	runicast_send(&runicast, &g1, MAX_RETRANSMISSIONS);
-	SENSORS_DEACTIVATE(sht11_sensor);		
-	printf("SENSE DONE %d\n",battery);
-}
 
 
 PROCESS_THREAD(traffic_sense_light_process, ev, data) {
@@ -86,28 +72,28 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 	while(true) {
 		PROCESS_WAIT_EVENT();
 		if(etimer_expired(&led_toggle_timer)) {
-			if(battery <= THRESHOLD_LOW) do_toggle(LEDS_BLUE);
-			else if(!crossing) do_toggle(LEDS_GREEN|LEDS_RED);
+			if(battery <= THRESHOLD_LOW) do_toggle(&battery,LEDS_BLUE);
+			else if(!crossing) do_toggle(&battery,LEDS_GREEN|LEDS_RED);
 			etimer_reset(&led_toggle_timer);
 		}
 
 		if(etimer_expired(&base_sense_timer) && full_active) {
 			if(battery > THRESHOLD_HIGH) {
-				do_sense();
+				do_sense(&runicast,&battery);
 				etimer_reset(&base_sense_timer);
 			}
 		}
 
 		if(etimer_expired(&reduced_sense_timer) && high_active) {
 			if(battery <= THRESHOLD_HIGH && battery > THRESHOLD_LOW) {
-				do_sense();
+				do_sense(&runicast,&battery);
 				etimer_reset(&reduced_sense_timer);
 			}
 		}
 
 		if(etimer_expired(&constrained_sense_timer) && low_active) {
 			if(battery <= THRESHOLD_LOW && battery > 0) {
-				do_sense();
+				do_sense(&runicast,&battery);
 				etimer_reset(&constrained_sense_timer);
 			}
 		}
@@ -134,7 +120,7 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 				packetbuf_copyfrom(&m,sizeof(m));
 				runicast_send(&runicast, &g1, MAX_RETRANSMISSIONS); // THIS CHANGE BETWEEN THE TWO TLs
 			}
-
+			do_toggle(&battery,LEDS_RED);
 		}
 
 		if(!low_active && 0 < battery && battery <= THRESHOLD_LOW) {
@@ -145,12 +131,23 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 
 		if(main_road_req || second_road_req) { //EVERY TL WILL DECIDE THE SAME THING AND WAIT AS WELL
 			//PENDING REQUESTS
-			cross_request_t* decided = decide();
+			if(crossing) continue;
+			unsigned char ledv;
+			cross_request_t* decided = decide(main_road_req,second_road_req);
+			char* v = (decided->req_v == NORMAL)?"normal":(decided->req_v == EMERGENCY)?"emergency":"ERROR";
 			if(decided == main_road_req) { 
+				ledv = LEDS_GREEN;
+				printf("%s VEHICLE ALLOWED CROSSING MAIN STREET\n",v);
 				main_road_req = 0;
-				need_notification = true; //THIS CHANGE BETWEEN THE TWO TLs
-			} else second_road_req = 0; 
-
+			} else {
+				ledv = LEDS_RED;
+				printf("%s VEHICLE ALLOWED CROSSING SECOND STREET\n",v);				
+				second_road_req = 0; 
+			}
+			need_notification = true; //THIS CHANGE BETWEEN THE TWO TLs
+			shut_leds(&battery);
+			do_toggle(&battery,ledv);
+			crossing = true;
 			etimer_set(&cross_timer,CLOCK_SECOND*CROSS_PERIOD);
 		}
 	}
