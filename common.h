@@ -67,6 +67,7 @@ linkaddr_t tl2 = {{TL2_ADDR,0}};
 linkaddr_t g1  = {{G1_ADDR,0}};  
 linkaddr_t g2  = {{G2_ADDR,0}};
 
+
 int get_index(const linkaddr_t* link) {
 	if(linkaddr_cmp(link,&tl1)) return TL1_INDEX;
 	if(linkaddr_cmp(link,&tl2)) return TL2_INDEX;
@@ -75,13 +76,18 @@ int get_index(const linkaddr_t* link) {
 	return -1;
 }
 
+int whoami() {
+	return get_index(&linkaddr_node_addr);
+}
+
 static void discharge_battery(int* battery,int drain) {
-	*battery=max(0,*battery-drain);		
+	//*battery=max(0,*battery-drain);		
 }
 
 static void do_sense(struct runicast_conn* runicast,int* battery) {
 	SENSORS_ACTIVATE(sht11_sensor);		
-	discharge_battery(battery,ON_SENSE_DRAIN);
+	if(battery)
+		discharge_battery(battery,ON_SENSE_DRAIN);
 	int tmp = (sht11_sensor.value(SHT11_SENSOR_TEMP)/10-396)/10;
 	int hum = sht11_sensor.value(SHT11_SENSOR_HUMIDITY)/41;
 	measurement_t m = {tmp,hum};

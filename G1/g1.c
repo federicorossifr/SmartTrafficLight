@@ -23,7 +23,7 @@ char* emergency_message = 0;
 
 static void display_string() {
 	char* em_msg = (emergency_message!=0)?emergency_message:"";
-	//printf("%s + %d + %d\n",em_msg,last_tmp_avg,last_hum_avg);
+	printf("%s + %d + %d\n",em_msg,last_tmp_avg,last_hum_avg);
 }
 
 static void insert_measurement(measurement_t measurement,const linkaddr_t* sender) {
@@ -92,6 +92,7 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 	SENSORS_ACTIVATE(sht11_sensor);
 	runicast_open(&runicast, 144, &runicast_calls);
 	broadcast_open(&broadcast, 129, &broadcast_call);  	
+	printf("I AM NODE: %d\n",whoami());
 	while(true) {
 		//printf("WAITING\n");
 		PROCESS_WAIT_EVENT();
@@ -129,8 +130,8 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 		} else if(ev == CROSS_COMPLETED) {//IF PENDING REQUEST SEND IT
 			crossing = false;
 			if(pending_request) {
-				cross_request_t req = {pending_vehicle,MAIN};				
-				packetbuf_copyfrom(&req,sizeof(cross_request_t));				
+				char* v_type = (pending_vehicle == NORMAL)?"n":"e";
+				packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
 				broadcast_send(&broadcast);								
 				pending_request = false;
 			}

@@ -73,7 +73,6 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 				pending_vehicle = NORMAL;
 			}
 			if(!crossing) { //If a vehicle is not being consiered for crossing send the request
-				cross_request_t req = {pending_vehicle,MAIN};
 				char* v_type = (pending_vehicle == NORMAL)?"n":"e";
 				packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
 				broadcast_send(&broadcast);				
@@ -86,15 +85,15 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 		} else if(ev == CROSS_COMPLETED) {//IF PENDING REQUEST SEND IT
 			crossing = false;
 			if(pending_request) {
-				cross_request_t req = {pending_vehicle,MAIN};				
-				packetbuf_copyfrom(&req,sizeof(cross_request_t));				
+				char* v_type = (pending_vehicle == NORMAL)?"n":"e";
+				packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
 				broadcast_send(&broadcast);								
 				pending_request = false;
 			}
 		}
 
 		if(etimer_expired(&base_sense_timer)) {
-			do_sense(&runicast,&battery);
+			do_sense(&runicast,0);
 			etimer_reset(&base_sense_timer);
 		}
 	}
