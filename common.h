@@ -81,7 +81,7 @@ int whoami() {
 }
 
 static void discharge_battery(int* battery,int drain) {
-	//*battery=max(0,*battery-drain);		
+	*battery=max(0,*battery-drain);		
 }
 
 static void do_sense(struct runicast_conn* runicast,int* battery) {
