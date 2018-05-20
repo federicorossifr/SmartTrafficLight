@@ -22,6 +22,32 @@ void init() {
 	oth_request = (me == TL1_INDEX)?&second_road_req:&main_road_req;
 }
 
+
+
+void process_requests(struct etimer* cross_timer) {
+	if(!main_road_req && !second_road_req) return;
+	if(crossing) return;
+	unsigned char ledv;
+	cross_request_t* decided = decide(main_road_req,second_road_req);
+	char* v = (decided->req_v == NORMAL)?"normal":(decided->req_v == EMERGENCY)?"emergency":"ERROR";
+	char* s = (decided->req_r == MAIN)?"main":(decided->req_r == SECOND)?"second":"ERROR";
+	if(decided == *ref_request) { 
+		ledv = LEDS_GREEN;
+		printf("%s VEHICLE ALLOWED CROSSING %s STREET\n",v,s);
+		free(*ref_request);
+		*ref_request = 0;
+	} else {
+		ledv = LEDS_RED;
+		printf("%s VEHICLE ALLOWED CROSSING %s STREET\n",v,s);	
+		free(*oth_request);			
+		*oth_request = 0; 
+	}
+	shut_leds(&battery);
+	do_toggle(&battery,ledv);
+	crossing = true;
+	etimer_set(cross_timer,CLOCK_SECOND*CROSS_PERIOD);
+}
+
 static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno) {
 }
 
@@ -38,10 +64,12 @@ static void broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from){
 	if(get_index(from) == G1_INDEX && !main_road_req) {
 		main_road_req = malloc(sizeof(cross_request_t));
 		main_road_req->req_v = (strcmp(v_type,"n")==0)?NORMAL:EMERGENCY;
+		main_road_req->req_r = MAIN;
 	}
 	else if(get_index(from) == G2_INDEX && !second_road_req) {
 		second_road_req = malloc(sizeof(cross_request_t));
 		second_road_req->req_v = (strcmp(v_type,"n")==0)?NORMAL:EMERGENCY;
+		second_road_req->req_r = SECOND;
 	}
 	process_post(&traffic_sense_light_process,CROSS_REQUEST,packetbuf_dataptr());			
 }
@@ -62,19 +90,16 @@ static void close_all() {
 
 PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 	static struct etimer led_toggle_timer;
-	static struct etimer base_sense_timer;	
-	static struct etimer reduced_sense_timer;	
-	static struct etimer constrained_sense_timer;	
+	static struct etimer sense_timer;	
 	static struct etimer cross_timer;
-	static bool full_active = true;
 	static bool high_active = false;
 	static bool low_active = false;
-
+	static int sensing_period = PERIOD_DEFAULT;
   	PROCESS_EXITHANDLER(close_all());		
 	PROCESS_BEGIN();
 	SENSORS_ACTIVATE(button_sensor);
 	etimer_set(&led_toggle_timer,CLOCK_SECOND*TOGGLE_INTERVAL);
-	etimer_set(&base_sense_timer,CLOCK_SECOND*PERIOD_DEFAULT);
+	etimer_set(&sense_timer,CLOCK_SECOND*PERIOD_DEFAULT);
 
 	runicast_open(&runicast, 144, &runicast_calls);
 	broadcast_open(&broadcast, 129, &broadcast_call);  	
@@ -83,45 +108,48 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 		PROCESS_WAIT_EVENT();
 		if(etimer_expired(&led_toggle_timer)) {
 			if(battery <= THRESHOLD_LOW) do_toggle(&battery,LEDS_BLUE);
-			else if(!crossing) do_toggle(&battery,LEDS_GREEN|LEDS_RED);
+			if(!crossing) do_toggle(&battery,LEDS_GREEN|LEDS_RED);
 			etimer_reset(&led_toggle_timer);
 		}
 
-		if(etimer_expired(&base_sense_timer) && full_active) {
-			if(battery > THRESHOLD_HIGH) {
-				do_sense(&runicast,&battery);
-				etimer_reset(&base_sense_timer);
-			}
-		}
-
-		if(etimer_expired(&reduced_sense_timer) && high_active) {
-			if(battery <= THRESHOLD_HIGH && battery > THRESHOLD_LOW) {
-				do_sense(&runicast,&battery);
-				etimer_reset(&reduced_sense_timer);
-			}
-		}
-
-		if(etimer_expired(&constrained_sense_timer) && low_active) {
-			if(battery <= THRESHOLD_LOW && battery > 0) {
-				do_sense(&runicast,&battery);
-				etimer_reset(&constrained_sense_timer);
-			}
+		if(etimer_expired(&sense_timer) && battery > 0) {
+			printf("TICK %d - %d\n",sensing_period,battery);
+			do_sense(&runicast,&battery);
+			etimer_set(&sense_timer,CLOCK_SECOND*sensing_period);
 		}
 
 		if(ev == sensors_event && data == &button_sensor) {
+			printf("BATTERY CHARGED TO %d\n",MAX_BATTERY);
 			if(battery <= THRESHOLD_LOW) {
 				shut_leds(&battery);
-				battery = 100;
-				high_active = low_active = false;
-				full_active = true;
-				etimer_set(&base_sense_timer,CLOCK_SECOND*PERIOD_DEFAULT);
+				battery = MAX_BATTERY;
+				sensing_period = PERIOD_DEFAULT;
+				etimer_set(&sense_timer,CLOCK_SECOND*sensing_period);
 			}
 		}
 
 		if(!high_active && THRESHOLD_LOW < battery && battery <= THRESHOLD_HIGH) {
-			etimer_set(&reduced_sense_timer,CLOCK_SECOND*PERIOD_HIGH);
-			full_active = false;
+			printf("BATTERY UNDER %d - SWITCHING TO %d PERIOD\n",THRESHOLD_HIGH,PERIOD_HIGH);
+			sensing_period = PERIOD_HIGH;
+			etimer_stop(&sense_timer);			
+			etimer_set(&sense_timer,CLOCK_SECOND*sensing_period);
 			high_active = true;
+		}
+
+
+		if(!low_active && 0 < battery && battery <= THRESHOLD_LOW) {
+			printf("BATTERY UNDER %d - SWITCHING TO %d PERIOD\n",THRESHOLD_LOW,PERIOD_LOW);	
+			sensing_period = PERIOD_LOW;		
+			etimer_stop(&sense_timer);
+			etimer_set(&sense_timer,CLOCK_SECOND*sensing_period);
+			high_active = false;	
+			low_active = true;	
+		}
+
+		if(low_active && battery == 0) {
+			printf("BATTERY DISCHARGED PRESS BUTTON TO RECHARGE\n");
+			etimer_stop(&sense_timer);
+			low_active = false;
 		}
 
 		if(crossing && etimer_expired(&cross_timer)) {
@@ -133,31 +161,8 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 			shut_leds(&battery);
 		}
 
-		if(!low_active && 0 < battery && battery <= THRESHOLD_LOW) {
-			etimer_set(&constrained_sense_timer,CLOCK_SECOND*PERIOD_LOW);
-			high_active = false;	
-			low_active = true;	
-		}
+		process_requests(&cross_timer);
 
-		if(main_road_req || second_road_req) {
-			if(crossing) continue;
-			unsigned char ledv;
-			cross_request_t* decided = decide(main_road_req,second_road_req);
-			char* v = (decided->req_v == NORMAL)?"normal":(decided->req_v == EMERGENCY)?"emergency":"ERROR";
-			if(decided == *ref_request) { 
-				ledv = LEDS_GREEN;
-				printf("%s VEHICLE ALLOWED CROSSING MAIN STREET\n",v);
-				*ref_request = 0;
-			} else {
-				ledv = LEDS_RED;
-				printf("%s VEHICLE ALLOWED CROSSING SECOND STREET\n",v);				
-				*oth_request = 0; 
-			}
-			shut_leds(&battery);
-			do_toggle(&battery,ledv);
-			crossing = true;
-			etimer_set(&cross_timer,CLOCK_SECOND*CROSS_PERIOD);
-		}
 	}
 	PROCESS_END();
 }
