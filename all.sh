@@ -1,13 +1,13 @@
 cd G1;
-make clean;
-make TARGET=sky;
+make -j4 TARGET=sky clean;
+make -j4 TARGET=sky;
 cd ../G2;
-make clean;
-make TARGET=sky;
+make -j4 TARGET=sky clean;
+make -j4 TARGET=sky;
 cd ../TL1;
-make clean;
-make TARGET=sky;
+make -j4 TARGET=sky clean;
+make -j4 TARGET=sky;
 cd ../TL2;
-make clean;
-make TARGET=sky;
+make -j4 TARGET=sky clean;
+make -j4 TARGET=sky;
 

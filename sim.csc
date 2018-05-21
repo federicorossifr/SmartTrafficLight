@@ -209,7 +209,7 @@
       <viewport>4.498048423077095 0.0 0.0 4.498048423077095 -105.28384071848927 -159.54066122189928</viewport>
     </plugin_config>
     <width>400</width>
-    <z>1</z>
+    <z>3</z>
     <height>400</height>
     <location_x>1</location_x>
     <location_y>1</location_y>
@@ -222,7 +222,7 @@
       <coloring />
     </plugin_config>
     <width>1320</width>
-    <z>2</z>
+    <z>4</z>
     <height>506</height>
     <location_x>400</location_x>
     <location_y>160</location_y>
@@ -240,7 +240,7 @@
       <zoomfactor>500.0</zoomfactor>
     </plugin_config>
     <width>1720</width>
-    <z>6</z>
+    <z>8</z>
     <height>166</height>
     <location_x>0</location_x>
     <location_y>779</location_y>
@@ -252,7 +252,7 @@
       <decorations>true</decorations>
     </plugin_config>
     <width>1040</width>
-    <z>5</z>
+    <z>7</z>
     <height>160</height>
     <location_x>680</location_x>
     <location_y>0</location_y>
@@ -265,10 +265,10 @@
       <scrollpos>0,0</scrollpos>
     </plugin_config>
     <width>350</width>
-    <z>3</z>
+    <z>5</z>
     <height>300</height>
-    <location_x>430</location_x>
-    <location_y>30</location_y>
+    <location_x>1165</location_x>
+    <location_y>32</location_y>
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.MoteInterfaceViewer
@@ -278,10 +278,36 @@
       <scrollpos>0,0</scrollpos>
     </plugin_config>
     <width>350</width>
-    <z>4</z>
+    <z>6</z>
     <height>300</height>
     <location_x>807</location_x>
     <location_y>31</location_y>
+  </plugin>
+  <plugin>
+    org.contikios.cooja.plugins.MoteInterfaceViewer
+    <mote_arg>3</mote_arg>
+    <plugin_config>
+      <interface>Button</interface>
+      <scrollpos>0,0</scrollpos>
+    </plugin_config>
+    <width>350</width>
+    <z>2</z>
+    <height>300</height>
+    <location_x>430</location_x>
+    <location_y>190</location_y>
+  </plugin>
+  <plugin>
+    org.contikios.cooja.plugins.MoteInterfaceViewer
+    <mote_arg>1</mote_arg>
+    <plugin_config>
+      <interface>Button</interface>
+      <scrollpos>0,0</scrollpos>
+    </plugin_config>
+    <width>350</width>
+    <z>1</z>
+    <height>300</height>
+    <location_x>787</location_x>
+    <location_y>188</location_y>
   </plugin>
 </simconf>
 
