@@ -55,11 +55,13 @@ typedef struct {
 	vehicle_t req_v;
 	road_t 	req_r;
 } cross_request_t;
-
 typedef struct {
+	bool is_cross;
+} comp_measurement_t;
+typedef struct {
+	bool is_cross;
 	int temperature;
 	int humidity;
-	bool is_cross;
 } measurement_t;
 
 linkaddr_t tl1 = {{TL1_ADDR,0}};

@@ -50,11 +50,11 @@ static void compute_averages() {
 static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno) {
 	//ALL RUNICAST MESSAGE ARE OF TYPE measurement_t
 	//IF is_cross FIELD is equal to 1 it is a CROSS ACK FROM attached TL sensor
-	measurement_t* m = (measurement_t*)packetbuf_dataptr();
+	comp_measurement_t* m = (comp_measurement_t*)packetbuf_dataptr();
 	if(m->is_cross) {
 		process_post(&sense_traffic_control_process,CROSS_COMPLETED,packetbuf_dataptr());			
 	} else {
-		measurement_t* measurement = (measurement_t*)packetbuf_dataptr();
+		measurement_t* measurement = (measurement_t*)m;
 		insert_measurement(*measurement,from);		
 		process_post(&sense_traffic_control_process,VAL_RECEIVED_EVENT,packetbuf_dataptr());							
 	}

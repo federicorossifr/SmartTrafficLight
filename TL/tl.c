@@ -154,7 +154,7 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 
 		if(crossing && etimer_expired(&cross_timer)) {
 			crossing = false;
-			measurement_t m = {0,0,1};
+			comp_measurement_t m = {1};
 			packetbuf_copyfrom(&m,sizeof(m));
 			if(!runicast_is_transmitting(&runicast))
 				runicast_send(&runicast, &ref_ground, MAX_RETRANSMISSIONS);
