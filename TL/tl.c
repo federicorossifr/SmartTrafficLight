@@ -121,7 +121,7 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 		if(ev == sensors_event && data == &button_sensor) {
 			printf("BATTERY CHARGED TO %d\n",MAX_BATTERY);
 			if(battery <= THRESHOLD_LOW) {
-				shut_leds(&battery);
+				shut_leds_val(&battery,LEDS_BLUE);
 				battery = MAX_BATTERY;
 				sensing_period = PERIOD_DEFAULT;
 				etimer_set(&sense_timer,CLOCK_SECOND*sensing_period);
