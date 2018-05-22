@@ -36,6 +36,7 @@ static void insert_measurement(measurement_t measurement,const linkaddr_t* sende
 		samples++;
 		inserted[index] = true;
 	}
+	printf("RECEIVED SAMPLE FROM %d: %d %d\n",index,measurement.temperature,measurement.humidity);
 }
 
 static void compute_averages() {

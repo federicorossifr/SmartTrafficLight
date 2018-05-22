@@ -15,10 +15,10 @@
 	ADDRESSES OF SKY MOTES IN COOJA FOLLOWING CREATION ORDER
 	TO BE MODIFIED IN CASE OF DEPLOY ON PHYSICAL NODES
 */	
-#define TL1_ADDR 			1
-#define G1_ADDR 			2 
-#define TL2_ADDR 			3
-#define G2_ADDR 			4
+#define TL1_ADDR 			2 	//2.0 	A004
+#define G1_ADDR 			50	//50.0	A003 
+#define TL2_ADDR 			45   //45.0  8157
+#define G2_ADDR 			51   //51.0  8156
 	
 /*
 	VIRTUAL INDEXES INSIDE THE APPLICATION DOMAIN
@@ -92,10 +92,15 @@ static void do_sense(struct runicast_conn* runicast,int* battery) {
 		discharge_battery(battery,ON_SENSE_DRAIN);
 	int tmp = (sht11_sensor.value(SHT11_SENSOR_TEMP)/10-396)/10;
 	int hum = sht11_sensor.value(SHT11_SENSOR_HUMIDITY)/41;
-	measurement_t m = {tmp,hum};
+	measurement_t m;
+	m.is_cross = 0;
+	m.temperature = tmp;
+	m.humidity = hum;
 	packetbuf_copyfrom(&m,sizeof(measurement_t));
-	if(!runicast_is_transmitting(runicast))
+	if(!runicast_is_transmitting(runicast)) {
+		printf("SENSING MEASUREMENT TO %d.0\n",G1_ADDR);
 		runicast_send(runicast, &g1, MAX_RETRANSMISSIONS);
+	}
 	SENSORS_DEACTIVATE(sht11_sensor);		
 }
 
@@ -123,3 +128,13 @@ static void shut_leds(int* battery) {
 		discharge_battery(battery,ON_TOGGLE_DRAIN);
 	leds_off(LEDS_RED|LEDS_GREEN);
 }
+
+static void shut_leds_val(int* battery,unsigned char ledv) {
+	if(*battery > 20)
+		discharge_battery(battery,ON_TOGGLE_DRAIN);
+	leds_off(ledv);
+}
+
+
+
+
