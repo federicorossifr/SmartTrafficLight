@@ -61,6 +61,10 @@ static void timedout_runicast(struct runicast_conn *c, const linkaddr_t *to, uin
 static void broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from){
 	char* v_type = (char*)packetbuf_dataptr();
 	printf("RECEIVED CROSSING REQUEST FROM: %d.%d FOR VEHICLE: %s\n",from->u8[0],from->u8[1],v_type);
+	if(get_index(from) == G1_INDEX && main_road_req)
+		printf("IGNORED, THERE'S ALREADY ONE FOR MAIN\n");
+	if(get_index(from) == G2_INDEX && second_road_req)
+		printf("IGNORED, THERE'S ALREADY ONE FOR SECOND\n");
 	if(get_index(from) == G1_INDEX && !main_road_req) {
 		main_road_req = malloc(sizeof(cross_request_t));
 		main_road_req->req_v = (strcmp(v_type,"n")==0)?NORMAL:EMERGENCY;
@@ -113,13 +117,11 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 		}
 
 		if(etimer_expired(&sense_timer) && battery > 0) {
-			printf("TICK %d - %d\n",sensing_period,battery);
 			do_sense(&runicast,&battery);
 			etimer_set(&sense_timer,CLOCK_SECOND*sensing_period);
 		}
 
 		if(ev == sensors_event && data == &button_sensor) {
-			printf("BATTERY CHARGED TO %d\n",MAX_BATTERY);
 			if(battery <= THRESHOLD_LOW) {
 				shut_leds_val(&battery,LEDS_BLUE);
 				battery = MAX_BATTERY;
@@ -129,7 +131,6 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 		}
 
 		if(!high_active && THRESHOLD_LOW < battery && battery <= THRESHOLD_HIGH) {
-			printf("BATTERY UNDER %d - SWITCHING TO %d PERIOD\n",THRESHOLD_HIGH,PERIOD_HIGH);
 			sensing_period = PERIOD_HIGH;
 			etimer_stop(&sense_timer);			
 			etimer_set(&sense_timer,CLOCK_SECOND*sensing_period);
@@ -138,7 +139,6 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 
 
 		if(!low_active && 0 < battery && battery <= THRESHOLD_LOW) {
-			printf("BATTERY UNDER %d - SWITCHING TO %d PERIOD\n",THRESHOLD_LOW,PERIOD_LOW);	
 			sensing_period = PERIOD_LOW;		
 			etimer_stop(&sense_timer);
 			etimer_set(&sense_timer,CLOCK_SECOND*sensing_period);
@@ -147,7 +147,6 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 		}
 
 		if(low_active && battery == 0) {
-			printf("BATTERY DISCHARGED PRESS BUTTON TO RECHARGE\n");
 			etimer_stop(&sense_timer);
 			low_active = false;
 		}

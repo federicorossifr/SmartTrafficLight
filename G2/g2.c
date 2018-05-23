@@ -57,39 +57,23 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 	broadcast_open(&broadcast, 129, &broadcast_call);  	
 	etimer_set(&base_sense_timer,CLOCK_SECOND*PERIOD_DEFAULT);
 	while(true) {
-		//printf("WAITING\n");
 		PROCESS_WAIT_EVENT();
-		
 		if(ev == sensors_event && data == &button_sensor) { //PRESSED BUTTON
-			if(pending_request) continue;
-			etimer_set(&second_click_timer,CLOCK_SECOND*SECOND_CLICK_WAIT*2);
+			leds_off(LEDS_ALL);			
+			etimer_set(&second_click_timer,CLOCK_SECOND*SECOND_CLICK_WAIT);
 			PROCESS_WAIT_EVENT();
 			if(ev == sensors_event && data == &button_sensor) {//BUTTON PRESSED SECOND TIME
+				leds_on(LEDS_ALL);
 				pending_vehicle = EMERGENCY;
 				printf("EMERGENCY ON SECOND!!\n");
 		    }
-			else if(etimer_expired(&second_click_timer)){ //BUTTON NOT PRESSED SECOND TIME
-				//printf("BUTTON PRESSED 1 TIME\n");
-				pending_vehicle = NORMAL;
-			}
-			if(!crossing) { //If a vehicle is not being consiered for crossing send the request
-				char* v_type = (pending_vehicle == NORMAL)?"n":"e";
-				packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
-				broadcast_send(&broadcast);				
-				crossing = true;
-			}
-			else { // If a vehicle is already considered for crossing enqueue it
-				//printf("A VEHICLE IS ALREADY CROSSING, SAVING THE REQUEST FOR LATER\n");
-				pending_request = true;
-			}
+			else pending_vehicle = NORMAL;
+			char* v_type = (pending_vehicle == NORMAL)?"n":"e";
+			packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
+			broadcast_send(&broadcast);				
 		} else if(ev == CROSS_COMPLETED) {//IF PENDING REQUEST SEND IT
+			printf("VEHICLE CROSSED THE ROAD\n");
 			crossing = false;
-			if(pending_request) {
-				char* v_type = (pending_vehicle == NORMAL)?"n":"e";
-				packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
-				broadcast_send(&broadcast);								
-				pending_request = false;
-			}
 		}
 
 		if(etimer_expired(&base_sense_timer)) {
