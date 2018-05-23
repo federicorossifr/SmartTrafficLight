@@ -72,6 +72,7 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 			packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
 			broadcast_send(&broadcast);				
 		} else if(ev == CROSS_COMPLETED) {//IF PENDING REQUEST SEND IT
+			leds_off(LEDS_ALL);
 			printf("VEHICLE CROSSED THE ROAD\n");
 			crossing = false;
 		}

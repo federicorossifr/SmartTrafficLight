@@ -112,6 +112,7 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 		} else if(ev == CROSS_COMPLETED) {//IF PENDING REQUEST SEND IT
 			printf("VEHICLE CROSSED THE ROAD\n");
 			crossing = false;
+			leds_off(LEDS_ALL);
 		} else if(ev == VAL_RECEIVED_EVENT) {
 			if(samples == 3) {
 				int tmp = (sht11_sensor.value(SHT11_SENSOR_TEMP)/10-396)/10;
