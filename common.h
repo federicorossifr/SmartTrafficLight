@@ -15,11 +15,17 @@
 	ADDRESSES OF SKY MOTES IN COOJA FOLLOWING CREATION ORDER
 	TO BE MODIFIED IN CASE OF DEPLOY ON PHYSICAL NODES
 */	
-#define TL1_ADDR 			2 	//2.0 		A004 	TL1
-#define G1_ADDR 			50	//50.0		A003	G1
-#define TL2_ADDR 			45  //45.0  	8157	TL2
-#define G2_ADDR 			51  //51.0  	8156	G2
-	
+#ifndef COOJA
+	#define TL1_ADDR 			2 	//2.0 		A004 	TL1
+	#define G1_ADDR 			50	//50.0		A003	G1
+	#define TL2_ADDR 			45  //45.0  	8157	TL2
+	#define G2_ADDR 			51  //51.0  	8156	G2
+#else
+	#define TL1_ADDR 			1 	//2.0 		A004 	TL1
+	#define G1_ADDR 			2	//50.0		A003	G1
+	#define TL2_ADDR 			3	//45.0  	8157	TL2
+	#define G2_ADDR 			4  	//51.0  	8156	G2
+#endif
 /*
 	VIRTUAL INDEXES INSIDE THE APPLICATION DOMAIN
 */	

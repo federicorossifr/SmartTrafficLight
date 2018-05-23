@@ -7,7 +7,7 @@
   <project EXPORT="discard">[APPS_DIR]/collect-view</project>
   <project EXPORT="discard">[APPS_DIR]/powertracker</project>
   <simulation>
-    <title>mysim</title>
+    <title>My simulation</title>
     <speedlimit>1.0</speedlimit>
     <randomseed>123456</randomseed>
     <motedelay_us>1000000</motedelay_us>
@@ -25,9 +25,9 @@
       org.contikios.cooja.mspmote.SkyMoteType
       <identifier>sky1</identifier>
       <description>TL1</description>
-      <source EXPORT="discard">[CONTIKI_DIR]/examples/unipi/Project/TL/tl.c</source>
+      <source EXPORT="discard">[CONTIKI_DIR]/examples/unipi/NESProject/TL/tl.c</source>
       <commands EXPORT="discard">make tl.sky TARGET=sky</commands>
-      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/unipi/Project/TL/tl.sky</firmware>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/unipi/NESProject/TL/tl.sky</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -48,9 +48,9 @@
       org.contikios.cooja.mspmote.SkyMoteType
       <identifier>sky2</identifier>
       <description>G1</description>
-      <source EXPORT="discard">[CONTIKI_DIR]/examples/unipi/Project/G1/g1.c</source>
+      <source EXPORT="discard">[CONTIKI_DIR]/examples/unipi/NESProject/G1/g1.c</source>
       <commands EXPORT="discard">make g1.sky TARGET=sky</commands>
-      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/unipi/Project/G1/g1.sky</firmware>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/unipi/NESProject/G1/g1.sky</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -70,10 +70,10 @@
     <motetype>
       org.contikios.cooja.mspmote.SkyMoteType
       <identifier>sky3</identifier>
-      <description>T2</description>
-      <source EXPORT="discard">[CONTIKI_DIR]/examples/unipi/Project/TL/tl.c</source>
+      <description>TL2</description>
+      <source EXPORT="discard">[CONTIKI_DIR]/examples/unipi/NESProject/TL/tl.c</source>
       <commands EXPORT="discard">make tl.sky TARGET=sky</commands>
-      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/unipi/Project/TL/tl.sky</firmware>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/unipi/NESProject/TL/tl.sky</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -94,9 +94,9 @@
       org.contikios.cooja.mspmote.SkyMoteType
       <identifier>sky4</identifier>
       <description>Sky Mote Type #sky4</description>
-      <source EXPORT="discard">[CONTIKI_DIR]/examples/unipi/Project/G2/g2.c</source>
+      <source EXPORT="discard">[CONTIKI_DIR]/examples/unipi/NESProject/G2/g2.c</source>
       <commands EXPORT="discard">make g2.sky TARGET=sky</commands>
-      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/unipi/Project/G2/g2.sky</firmware>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/unipi/NESProject/G2/g2.sky</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -117,8 +117,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>80.05233788693364</x>
-        <y>70.8022727557921</y>
+        <x>135.6122810831656</x>
+        <y>9.59076058828748</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -135,8 +135,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>80.23636275939984</x>
-        <y>89.26423763528992</y>
+        <x>117.21098418306693</x>
+        <y>10.11025849195218</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -147,18 +147,14 @@
         org.contikios.cooja.mspmote.interfaces.MspMoteID
         <id>2</id>
       </interface_config>
-      <interface_config>
-        org.contikios.cooja.mspmote.interfaces.MspSerial
-        <history>HELLo!~;NES~;</history>
-      </interface_config>
       <motetype_identifier>sky2</motetype_identifier>
     </mote>
     <mote>
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>69.33807420655015</x>
-        <y>60.164575768496164</y>
+        <x>158.74279617823944</x>
+        <y>8.76338983986195</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -175,8 +171,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>50.10244618310287</x>
-        <y>60.1613399630281</y>
+        <x>157.77116747879353</x>
+        <y>32.56774176930442</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -206,10 +202,10 @@
       <skin>org.contikios.cooja.plugins.skins.GridVisualizerSkin</skin>
       <skin>org.contikios.cooja.plugins.skins.TrafficVisualizerSkin</skin>
       <skin>org.contikios.cooja.plugins.skins.UDGMVisualizerSkin</skin>
-      <viewport>4.498048423077095 0.0 0.0 4.498048423077095 -105.28384071848927 -159.54066122189928</viewport>
+      <viewport>2.6785700898037024 0.0 0.0 2.6785700898037024 -74.58077112202777 114.03774827701773</viewport>
     </plugin_config>
     <width>400</width>
-    <z>3</z>
+    <z>2</z>
     <height>400</height>
     <location_x>1</location_x>
     <location_y>1</location_y>
@@ -222,8 +218,8 @@
       <coloring />
     </plugin_config>
     <width>1320</width>
-    <z>4</z>
-    <height>506</height>
+    <z>1</z>
+    <height>451</height>
     <location_x>400</location_x>
     <location_y>160</location_y>
   </plugin>
@@ -240,7 +236,7 @@
       <zoomfactor>500.0</zoomfactor>
     </plugin_config>
     <width>1720</width>
-    <z>8</z>
+    <z>4</z>
     <height>166</height>
     <location_x>0</location_x>
     <location_y>779</location_y>
@@ -252,62 +248,10 @@
       <decorations>true</decorations>
     </plugin_config>
     <width>1040</width>
-    <z>7</z>
+    <z>3</z>
     <height>160</height>
     <location_x>680</location_x>
     <location_y>0</location_y>
-  </plugin>
-  <plugin>
-    org.contikios.cooja.plugins.MoteInterfaceViewer
-    <mote_arg>0</mote_arg>
-    <plugin_config>
-      <interface>Sky LED</interface>
-      <scrollpos>0,0</scrollpos>
-    </plugin_config>
-    <width>350</width>
-    <z>5</z>
-    <height>300</height>
-    <location_x>1165</location_x>
-    <location_y>32</location_y>
-  </plugin>
-  <plugin>
-    org.contikios.cooja.plugins.MoteInterfaceViewer
-    <mote_arg>2</mote_arg>
-    <plugin_config>
-      <interface>Sky LED</interface>
-      <scrollpos>0,0</scrollpos>
-    </plugin_config>
-    <width>350</width>
-    <z>6</z>
-    <height>300</height>
-    <location_x>807</location_x>
-    <location_y>31</location_y>
-  </plugin>
-  <plugin>
-    org.contikios.cooja.plugins.MoteInterfaceViewer
-    <mote_arg>3</mote_arg>
-    <plugin_config>
-      <interface>Button</interface>
-      <scrollpos>0,0</scrollpos>
-    </plugin_config>
-    <width>350</width>
-    <z>2</z>
-    <height>300</height>
-    <location_x>430</location_x>
-    <location_y>190</location_y>
-  </plugin>
-  <plugin>
-    org.contikios.cooja.plugins.MoteInterfaceViewer
-    <mote_arg>1</mote_arg>
-    <plugin_config>
-      <interface>Button</interface>
-      <scrollpos>0,0</scrollpos>
-    </plugin_config>
-    <width>350</width>
-    <z>1</z>
-    <height>300</height>
-    <location_x>787</location_x>
-    <location_y>188</location_y>
   </plugin>
 </simconf>
 
