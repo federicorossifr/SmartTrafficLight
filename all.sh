@@ -1,3 +1,4 @@
+chmod -R u+rwx *
 cd G1;
 make -j5 TARGET=sky clean;
 make -j5 TARGET=sky;
