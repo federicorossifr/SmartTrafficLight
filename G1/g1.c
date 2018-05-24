@@ -129,14 +129,10 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 
 PROCESS_THREAD(keyboard_emergency_process, ev, data) {
 	int correct;
-
 	PROCESS_BEGIN();
-
 	correct = 0;
 	SENSORS_ACTIVATE(button_sensor);
-	//uart1_set_input(serial_line_input_byte); IT GIVES A WARNING INSTEAD
 	serial_line_init();
-
 	while(1){
 		while(correct == 0){
 			printf("Please, type the password\n");
@@ -150,7 +146,6 @@ PROCESS_THREAD(keyboard_emergency_process, ev, data) {
 		printf("Type the emergency warning\n");
 		PROCESS_WAIT_EVENT_UNTIL(ev==serial_line_event_message);
 		char* em = (char*)data;
-		if(strlen(em) == 0) continue;
 		emergency_message = malloc(sizeof(char)*(strlen(em)+1));
 		strcpy(emergency_message,em);
 		printf("Emergency message set to %s\n",emergency_message);
