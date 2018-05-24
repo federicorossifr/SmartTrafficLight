@@ -117,7 +117,7 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 			if(samples == 3) {
 				int tmp = (sht11_sensor.value(SHT11_SENSOR_TEMP)/10-396)/10;
 				int hum = sht11_sensor.value(SHT11_SENSOR_HUMIDITY)/41;
-				measurement_t m = {tmp,hum};
+				measurement_t m = {0,tmp,hum};
 				insert_measurement(m,0);
 				compute_averages();
 				display_string();

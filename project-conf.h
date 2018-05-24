@@ -1,1 +1,1 @@
-//#define COOJA
+#define COOJA
