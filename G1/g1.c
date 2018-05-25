@@ -1,11 +1,10 @@
+#define SINK
 #include "../common.h"
 static struct runicast_conn runicast;
 static struct broadcast_conn broadcast;
 
-const linkaddr_t* last_runicast_recv;
-
-PROCESS(keyboard_emergency_process, "KEYBOARD_EMERGENCY_PROCESS");
-PROCESS(sense_traffic_control_process, "SENSE_TRAFFIC_CONTROL_PROCESS");
+PROCESS(keyboard_emergency_process, "G1_KEYBOARD_PROCESS");
+PROCESS(sense_traffic_control_process, "G1_SENSING_TRAFFIC_PROCESS");
 AUTOSTART_PROCESSES(&sense_traffic_control_process,&keyboard_emergency_process);
 
 int temp_m[4];
@@ -36,7 +35,8 @@ static void insert_measurement(measurement_t measurement,const linkaddr_t* sende
 		samples++;
 		inserted[index] = true;
 	}
-	printf("RECEIVED SAMPLE FROM %d: %d %d\n",index,measurement.temperature,measurement.humidity);
+	if(index != whoami())
+		printf("RECEIVED SAMPLE FROM %d: %d %d\n",index,measurement.temperature,measurement.humidity);
 }
 
 static void compute_averages() {
@@ -46,11 +46,7 @@ static void compute_averages() {
 	inserted[0] = inserted[1] = inserted[2] = inserted[3] = false;
 }
 
-
-
 static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno) {
-	//ALL RUNICAST MESSAGE ARE OF TYPE measurement_t
-	//IF is_cross FIELD is equal to 1 it is a CROSS ACK FROM attached TL sensor
 	comp_measurement_t* m = (comp_measurement_t*)packetbuf_dataptr();
 	if(m->is_cross) {
 		process_post(&sense_traffic_control_process,CROSS_COMPLETED,packetbuf_dataptr());			
@@ -61,32 +57,19 @@ static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8
 	}
 }
 
-static void sent_runicast(struct runicast_conn *c, const linkaddr_t *to, uint8_t retransmissions){
-}
-
-static void timedout_runicast(struct runicast_conn *c, const linkaddr_t *to, uint8_t retransmissions){
-}
-
-
-static void broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from){
-}
-
-static void broadcast_sent(struct broadcast_conn *c, int status, int num_tx){
-}
-
+static void sent_runicast(struct runicast_conn *c, const linkaddr_t *to, uint8_t retransmissions){}
+static void timedout_runicast(struct runicast_conn *c, const linkaddr_t *to, uint8_t retransmissions){}
+static void broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from){}
+static void broadcast_sent(struct broadcast_conn *c, int status, int num_tx){}
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv, broadcast_sent};
 static const struct runicast_callbacks runicast_calls = {recv_runicast, sent_runicast, timedout_runicast};
-
 static void close_all() {
 	runicast_close(&runicast);
 	broadcast_close(&broadcast);
 }
 
-
-
 PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 	static struct etimer second_click_timer;
-  	
   	PROCESS_EXITHANDLER(close_all());	
 	PROCESS_BEGIN();
 	SENSORS_ACTIVATE(button_sensor);
@@ -96,11 +79,11 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 	printf("I AM NODE: %d\n",whoami());
 	while(true) {
 		PROCESS_WAIT_EVENT();
-		if(ev == sensors_event && data == &button_sensor) { //PRESSED BUTTON
+		if(ev == sensors_event && data == &button_sensor) {
 			leds_off(LEDS_ALL);
 			etimer_set(&second_click_timer,CLOCK_SECOND*SECOND_CLICK_WAIT);
 			PROCESS_WAIT_EVENT();
-			if(ev == sensors_event && data == &button_sensor) {//BUTTON PRESSED SECOND TIME
+			if(ev == sensors_event && data == &button_sensor) {
 				pending_vehicle = EMERGENCY;
 				leds_on(LEDS_ALL);				
 				printf("EMERGENCY ON MAIN!!\n");
@@ -109,7 +92,7 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 			char* v_type = (pending_vehicle == NORMAL)?"n":"e";
 			packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
 			broadcast_send(&broadcast);				
-		} else if(ev == CROSS_COMPLETED) {//IF PENDING REQUEST SEND IT
+		} else if(ev == CROSS_COMPLETED) {
 			printf("VEHICLE CROSSED THE ROAD\n");
 			crossing = false;
 			leds_off(LEDS_ALL);
@@ -151,6 +134,5 @@ PROCESS_THREAD(keyboard_emergency_process, ev, data) {
 		printf("Emergency message set to %s\n",emergency_message);
 		correct = 0;
 	}
-
 	PROCESS_END();
 }
