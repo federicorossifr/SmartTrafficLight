@@ -10,9 +10,11 @@ AUTOSTART_PROCESSES(&sense_traffic_control_process,&keyboard_emergency_process);
 int temp_m[4];
 int last_tmp_avg; 
 int hum_m[4];
-bool inserted[4] = {false,false,false,false};
+bool inserted_temp[4] = {false,false,false,false};
+bool inserted_hum[4] = {false,false,false,false};
 int last_hum_avg; 
-int samples = 0;
+int samples_temp = 0;
+int samples_hum = 0;
 
 bool pending_request = false;
 bool crossing = false;
@@ -27,9 +29,6 @@ static void display_string() {
 
 /*
 	INSERT MEASURE IN ARRAY OF MEASURES INDEXED BY THE VIRTUAL INDEX OF THE SENDER
-	WE USE ONLY ONE COUNTER FOR BOTH HUMIDITY AND TEMPERATURE SINCE THEY'RE SENT
-	TOGHETHER AS REPORTED IN PROJECT SPECIFICATIONS. OTHERWISE WE SHOULD USE TWO
-	SEPARATE COUNTERS.
 */
 static void insert_measurement(measurement_t measurement,const linkaddr_t* sender) {
 	int index = -1;
@@ -37,9 +36,13 @@ static void insert_measurement(measurement_t measurement,const linkaddr_t* sende
 	else index = get_index(sender);
 	temp_m[index] = measurement.temperature;
 	hum_m[index] = measurement.humidity;
-	if(!inserted[index]) {
-		samples++;
-		inserted[index] = true;
+	if(!inserted_temp[index]) {
+		samples_temp++;
+		inserted_temp[index] = true;
+	}
+	if(!inserted_hum[index]) {
+		samples_hum++;
+		inserted_hum[index] = true;
 	}
 	if(index != whoami())
 		printf("RECEIVED SAMPLE FROM %d: %d %d\n",index,measurement.temperature,measurement.humidity);
@@ -50,10 +53,16 @@ static void insert_measurement(measurement_t measurement,const linkaddr_t* sende
 	CHECK FOR BOTH COUNTERS AND EMPTY ONLY COMPLETED STORED VALUES.
 */
 static void compute_averages() {
-	last_tmp_avg = (temp_m[0]+temp_m[1]+temp_m[2]+temp_m[3])/4;
-	last_hum_avg = (hum_m[0]+hum_m[1]+hum_m[2]+hum_m[3])/4;	
-	samples=0;
-	inserted[0] = inserted[1] = inserted[2] = inserted[3] = false;
+	if(samples_temp == 4) {
+		last_tmp_avg = (temp_m[0]+temp_m[1]+temp_m[2]+temp_m[3])/4;
+		samples_temp = 0;
+		inserted_temp[0] = inserted_temp[1] = inserted_temp[2] = inserted_temp[3] = false;
+	}
+	if(samples_hum == 4) {
+		last_hum_avg = (hum_m[0]+hum_m[1]+hum_m[2]+hum_m[3])/4;	
+		samples_hum = 0;
+		inserted_hum[0] = inserted_hum[1] = inserted_hum[2] = inserted_hum[3] = false;
+	}
 }
 
 /*
@@ -120,7 +129,7 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 			crossing = false;
 			leds_off(LEDS_ALL);
 		} else if(ev == VAL_RECEIVED_EVENT) {
-			if(samples == 3) {
+			if(samples_hum == 3 || samples_temp == 3) {
 				int tmp = (sht11_sensor.value(SHT11_SENSOR_TEMP)/10-396)/10;
 				int hum = sht11_sensor.value(SHT11_SENSOR_HUMIDITY)/41;
 				measurement_t m = {0,tmp,hum};
