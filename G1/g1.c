@@ -45,7 +45,7 @@ static void insert_measurement(measurement_t measurement,const linkaddr_t* sende
 		inserted_hum[index] = true;
 	}
 	if(index != whoami())
-		printf("RECEIVED SAMPLE FROM %d: %d %d\n",index,measurement.temperature,measurement.humidity);
+		printf("RECEIVED SAMPLE FROM %d.0 - Temperature:%d Humidity:%d\n",index,measurement.temperature,measurement.humidity);
 }
 
 /*
