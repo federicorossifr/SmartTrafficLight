@@ -52,8 +52,9 @@
 #define SECOND_CLICK_WAIT   1 	// SECOND BEFORE NEXT BUTTON CLICK
 #define VAL_RECEIVED_EVENT	10	// CUSTOM EVENT FOR SINK RECEIVING TEMP AND HUM VALUES
 #define CROSS_COMPLETED 	11 	// CUSTOM EVENT FOR G1 AND G2 RECEIVING CROSS COMPLETED ACKS
-#define CROSS_REQUEST 		12	// CUSTO EVENT FOR TL1 AND TL1 RECEIVING REQUESTS FROM G1 AND G2
+#define CROSS_REQUEST 		12	// CUSTOM EVENT FOR TL1 AND TL1 RECEIVING REQUESTS FROM G1 AND G2
 #define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
+
 
 typedef enum { NORMAL,EMERGENCY } vehicle_t;
 typedef enum { MAIN, SECOND }  road_t;
@@ -72,11 +73,18 @@ typedef struct {
 	int humidity;
 } measurement_t;
 
+/*
+	DESTINATION ADDRESS FOR THE PHYSICAL NODES IN THE NETWORK
+*/
 linkaddr_t tl1 = {{TL1_ADDR,0}};
 linkaddr_t tl2 = {{TL2_ADDR,0}};
 linkaddr_t g1  = {{G1_ADDR,0}};  
 linkaddr_t g2  = {{G2_ADDR,0}};
 
+
+/*
+	RETURN THE VIRTUAL ADDRESS OF A NODE BASING ON ITS PHYSICAL ADDRESS
+*/
 int get_index(const linkaddr_t* link) {
 	if(linkaddr_cmp(link,&tl1)) return TL1_INDEX;
 	if(linkaddr_cmp(link,&tl2)) return TL2_INDEX;
@@ -85,47 +93,54 @@ int get_index(const linkaddr_t* link) {
 	return -1;
 }
 
+/*
+	RETURN THE VIRTUAL ADDRESS OF THIS NODE
+*/ 
 int whoami() {
 	return get_index(&linkaddr_node_addr);
 }
 
-#ifdef TL
+#ifdef TL //THIS CODE WILL BE INCLUDED ONLY WHEN COMPILING tl.c
 static void discharge_battery(int* battery,int drain) {
 	*battery=max(0,*battery-drain);		
 }
-
+/*
+	FUNCTION decide IS CALLED BY process_requests IN TL ONLY IF AT LEAST ONE
+	OF THE TWO ARGUMENTS PASSED IS NOT NULL. WE RETURN THE POINTER
+	TO THE REQUEST WE HAVE DECIDED TO SCHEDULE.
+*/
 cross_request_t* decide(cross_request_t* main,cross_request_t* second) {
-	if(!second) return main;
-	if(!main) return second;
-	if(main->req_v == EMERGENCY) return main;
-	if(second->req_v == NORMAL) return main;
-	if(second->req_v == EMERGENCY && main->req_v == NORMAL) return second;
+	if(!second) return main;												// NO REQUEST ON SECOND ROAD, MAIN FOR SURE DIFFERENT FROM NULL
+	if(!main) return second;												// IDEM BUT THE OTHER WAY AROUND
+	if(main->req_v == EMERGENCY) return main;								// IF THERE IS EMERGENCY ON MAIN, LET THAT PASS NO MATTER OTHERS
+	if(second->req_v == NORMAL) return main;								// IF THERE IS NORMAL ON SECOND, THIS IS THE LEAST PRIORITY, SO LET PASS MAIN
+	if(second->req_v == EMERGENCY && main->req_v == NORMAL) return second;	// IF SECOND IS EMERGENCY AND MAIN IS NORMAL, VEHICLE IS PRIORITARY, SO LET PASS SECOND
 	return main;
 }
 
 static void do_toggle(int* battery,unsigned char ledv) {
-	if(*battery > 20)
+	//if(*battery > 20)
 		discharge_battery(battery,ON_TOGGLE_DRAIN);
 	leds_toggle(ledv);
 }
 
 static void shut_leds(int* battery) {
-	if(*battery > 20)
+	//if(*battery > 20)
 		discharge_battery(battery,ON_TOGGLE_DRAIN);
 	leds_off(LEDS_RED|LEDS_GREEN);
 }
 
 static void shut_leds_val(int* battery,unsigned char ledv) {
-	if(*battery > 20)
+	//if(*battery > 20)
 		discharge_battery(battery,ON_TOGGLE_DRAIN);
 	leds_off(ledv);
 }
 #endif
 
-#ifndef SINK
+#ifndef SINK //FOLLOWING CODE WILL BE INCLUDED ONLY WHEN NOT COMPILING g1.c
 static void do_sense(struct runicast_conn* runicast,int* battery) {
 	SENSORS_ACTIVATE(sht11_sensor);	
-	#ifdef TL	
+	#ifdef TL 
 	if(battery)
 		discharge_battery(battery,ON_SENSE_DRAIN);
 	#endif
@@ -137,7 +152,7 @@ static void do_sense(struct runicast_conn* runicast,int* battery) {
 	m.humidity = hum;
 	packetbuf_copyfrom(&m,sizeof(measurement_t));
 	if(!runicast_is_transmitting(runicast)) {
-		printf("SENSING MEASUREMENT TO %d.0\n",G1_ADDR);
+		printf("SENDING MEASUREMENT TO %d.0\n",G1_ADDR);
 		runicast_send(runicast, &g1, MAX_RETRANSMISSIONS);
 	}
 	SENSORS_DEACTIVATE(sht11_sensor);		

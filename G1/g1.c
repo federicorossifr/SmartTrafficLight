@@ -25,6 +25,12 @@ static void display_string() {
 	printf("%s + %d + %d\n",em_msg,last_tmp_avg,last_hum_avg);
 }
 
+/*
+	INSERT MEASURE IN ARRAY OF MEASURES INDEXED BY THE VIRTUAL INDEX OF THE SENDER
+	WE USE ONLY ONE COUNTER FOR BOTH HUMIDITY AND TEMPERATURE SINCE THEY'RE SENT
+	TOGHETHER AS REPORTED IN PROJECT SPECIFICATIONS. OTHERWISE WE SHOULD USE TWO
+	SEPARATE COUNTERS.
+*/
 static void insert_measurement(measurement_t measurement,const linkaddr_t* sender) {
 	int index = -1;
 	if(sender == 0) index = G1_INDEX;
@@ -39,6 +45,10 @@ static void insert_measurement(measurement_t measurement,const linkaddr_t* sende
 		printf("RECEIVED SAMPLE FROM %d: %d %d\n",index,measurement.temperature,measurement.humidity);
 }
 
+/*
+	COMPUTE AVERAGES AND EMPTY STORED VALUES. AGAIN IF MEASUREMENTS WERE SENT APART WE SHOULD
+	CHECK FOR BOTH COUNTERS AND EMPTY ONLY COMPLETED STORED VALUES.
+*/
 static void compute_averages() {
 	last_tmp_avg = (temp_m[0]+temp_m[1]+temp_m[2]+temp_m[3])/4;
 	last_hum_avg = (hum_m[0]+hum_m[1]+hum_m[2]+hum_m[3])/4;	
@@ -46,6 +56,13 @@ static void compute_averages() {
 	inserted[0] = inserted[1] = inserted[2] = inserted[3] = false;
 }
 
+/*
+	UPON RECEIVING A RUNICAST WE MUST UNDERSTAND IF IT IS A CROSS ACK OR A MEASURMENT
+	TO DO SO, WE HAVE A "COMPRESSED" MEASUREMENT MESSAGE THAT ONLY CONTAINS THE FIRST
+	FIELD OF THE "UNCOMPRESSED" ONE. IF THIS FIELD IS 1 THE OTHER 2 ARE NOT PRESENT
+	(NOT SENT AT ALL) THUS BEING A CROSS ACK. IN THE OTHER CASE WE MUST READ ALSO THE OTHER
+	2 FIELDS REPRESENTING HUMIDITY AND TEMPERATURE.
+*/
 static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno) {
 	comp_measurement_t* m = (comp_measurement_t*)packetbuf_dataptr();
 	if(m->is_cross) {
@@ -68,6 +85,11 @@ static void close_all() {
 	broadcast_close(&broadcast);
 }
 
+/*
+	THIS PROCESS HANDLES:
+	1) TRAFFIC COMMUNICATION WITH TLs
+	2) SENSED DATA RECEPTION FROM ALL OTHER SENSORS
+*/
 PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 	static struct etimer second_click_timer;
   	PROCESS_EXITHANDLER(close_all());	
@@ -85,6 +107,7 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 			PROCESS_WAIT_EVENT();
 			if(ev == sensors_event && data == &button_sensor) {
 				pending_vehicle = EMERGENCY;
+				//SWITCH ON ALL THE LEDS WHEN EMERGENCY -- JUST FOR DEBUG
 				leds_on(LEDS_ALL);				
 				printf("EMERGENCY ON MAIN!!\n");
 		    }
@@ -110,11 +133,14 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 	PROCESS_END();
 }
 
+/*
+	THIS PROCESS HANDLES:
+	1) KEYBOARD INPUT FROM USER
+*/
 PROCESS_THREAD(keyboard_emergency_process, ev, data) {
 	int correct;
 	PROCESS_BEGIN();
 	correct = 0;
-	SENSORS_ACTIVATE(button_sensor);
 	serial_line_init();
 	while(1){
 		while(correct == 0){

@@ -4,9 +4,14 @@ static struct broadcast_conn broadcast;
 
 PROCESS(sense_traffic_control_process, "G2_SENSING_TRAFFIC_PROCESS");
 AUTOSTART_PROCESSES(&sense_traffic_control_process);
-bool pending_request = false;
+
+
 bool crossing = false;
 vehicle_t pending_vehicle;
+
+/*
+	UPON RECEIVING A RUNICAST, CHECK IF IT A CROSS ACK, AND THEN POST EVENT OF CROSS COMPLETION
+*/
 static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno) {
 	measurement_t* m = (measurement_t*)packetbuf_dataptr();
 	if(m->is_cross) process_post(&sense_traffic_control_process,CROSS_COMPLETED,packetbuf_dataptr());			
@@ -18,10 +23,17 @@ static void broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from){}
 static void broadcast_sent(struct broadcast_conn *c, int status, int num_tx){}
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv, broadcast_sent};
 static const struct runicast_callbacks runicast_calls = {recv_runicast, sent_runicast, timedout_runicast};
+
 static void close_all() {
 	runicast_close(&runicast);
 	broadcast_close(&broadcast);
 }
+
+/*
+	THIS PROCESS HANDLES:
+	1) SENSING
+	2) TRAFFIC COMMUNICATION TO TLs
+*/
 
 PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 	static struct etimer second_click_timer;
@@ -45,7 +57,7 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 				pending_vehicle = EMERGENCY;
 				printf("EMERGENCY ON SECOND!!\n");
 		    }
-			else pending_vehicle = NORMAL;
+			else {pending_vehicle = NORMAL; etimer_stop(&second_click_timer);}
 			char* v_type = (pending_vehicle == NORMAL)?"n":"e";
 			packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
 			broadcast_send(&broadcast);				
