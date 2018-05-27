@@ -65,10 +65,6 @@ typedef struct {
 	road_t 	req_r;
 } cross_request_t;
 typedef struct {
-	bool is_cross;
-} comp_measurement_t;
-typedef struct {
-	bool is_cross;
 	int temperature;
 	int humidity;
 } measurement_t;
@@ -119,20 +115,17 @@ cross_request_t* decide(cross_request_t* main,cross_request_t* second) {
 }
 
 static void do_toggle(int* battery,unsigned char ledv) {
-	//if(*battery > 20)
-		discharge_battery(battery,ON_TOGGLE_DRAIN);
+	discharge_battery(battery,ON_TOGGLE_DRAIN);
 	leds_toggle(ledv);
 }
 
 static void shut_leds(int* battery) {
-	//if(*battery > 20)
-		discharge_battery(battery,ON_TOGGLE_DRAIN);
+	discharge_battery(battery,ON_TOGGLE_DRAIN);
 	leds_off(LEDS_RED|LEDS_GREEN);
 }
 
 static void shut_leds_val(int* battery,unsigned char ledv) {
-	//if(*battery > 20)
-		discharge_battery(battery,ON_TOGGLE_DRAIN);
+	discharge_battery(battery,ON_TOGGLE_DRAIN);
 	leds_off(ledv);
 }
 #endif
@@ -147,7 +140,6 @@ static void do_sense(struct runicast_conn* runicast,int* battery) {
 	int tmp = (sht11_sensor.value(SHT11_SENSOR_TEMP)/10-396)/10;
 	int hum = sht11_sensor.value(SHT11_SENSOR_HUMIDITY)/41;
 	measurement_t m;
-	m.is_cross = 0;
 	m.temperature = tmp;
 	m.humidity = hum;
 	packetbuf_copyfrom(&m,sizeof(measurement_t));

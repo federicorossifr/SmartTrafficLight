@@ -33,6 +33,7 @@ static void insert_measurement(measurement_t measurement,const linkaddr_t* sende
 	int index = -1;
 	if(sender == 0) index = G1_INDEX;
 	else index = get_index(sender);
+	if(index < 0) return;
 	temp_m[index] = measurement.temperature;
 	hum_m[index] = measurement.humidity;
 	if(!inserted_temp[index]) {
@@ -43,6 +44,8 @@ static void insert_measurement(measurement_t measurement,const linkaddr_t* sende
 		samples_hum++;
 		inserted_hum[index] = true;
 	}
+
+	if(index != G1_INDEX) printf("Sample received from node %d - Temperature: %d Humidity: %d\n",index,measurement.temperature,measurement.humidity );
 }
 
 /*
@@ -63,28 +66,19 @@ static void compute_averages() {
 }
 
 /*
-	UPON RECEIVING A RUNICAST WE MUST UNDERSTAND IF IT IS A CROSS ACK OR A MEASURMENT
-	TO DO SO, WE HAVE A "COMPRESSED" MEASUREMENT MESSAGE THAT ONLY CONTAINS THE FIRST
-	FIELD OF THE "UNCOMPRESSED" ONE. IF THIS FIELD IS 1 THE OTHER 2 ARE NOT PRESENT
-	(NOT SENT AT ALL) THUS BEING A CROSS ACK. IN THE OTHER CASE WE MUST READ ALSO THE OTHER
-	2 FIELDS REPRESENTING HUMIDITY AND TEMPERATURE.
+	A RUNICAST TO G1 IS A MEASUREMENT FROM A SENSOR
 */
 static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno) {
-	comp_measurement_t* m = (comp_measurement_t*)packetbuf_dataptr();
-	if(m->is_cross) {
-		process_post(&sense_traffic_control_process,CROSS_COMPLETED,packetbuf_dataptr());			
-	} else {
-		measurement_t* measurement = (measurement_t*)m;
-		insert_measurement(*measurement,from);		
-		process_post(&sense_traffic_control_process,VAL_RECEIVED_EVENT,packetbuf_dataptr());							
-	}
+	measurement_t* measurement = (measurement_t*)packetbuf_dataptr();
+	insert_measurement(*measurement,from);		
+	process_post(&sense_traffic_control_process,VAL_RECEIVED_EVENT,packetbuf_dataptr());
 }
 
 static void sent_runicast(struct runicast_conn *c, const linkaddr_t *to, uint8_t retransmissions){}
 static void timedout_runicast(struct runicast_conn *c, const linkaddr_t *to, uint8_t retransmissions){}
 static void broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from){}
 static void broadcast_sent(struct broadcast_conn *c, int status, int num_tx){}
-static const struct broadcast_callbacks broadcast_call = {broadcast_recv, broadcast_sent};
+static const struct broadcast_callbacks broadcast_calls = {broadcast_recv, broadcast_sent};
 static const struct runicast_callbacks runicast_calls = {recv_runicast, sent_runicast, timedout_runicast};
 static void close_all() {
 	runicast_close(&runicast);
@@ -103,7 +97,7 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 	SENSORS_ACTIVATE(button_sensor);
 	SENSORS_ACTIVATE(sht11_sensor);
 	runicast_open(&runicast, 144, &runicast_calls);
-	broadcast_open(&broadcast, 129, &broadcast_call);  	
+	broadcast_open(&broadcast, 129, &broadcast_calls);  	
 	printf("I AM NODE: %d\n",whoami());
 	while(true) {
 		PROCESS_WAIT_EVENT();
@@ -123,13 +117,11 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 			char* v_type = (pending_vehicle == NORMAL)?"n":"e";
 			packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
 			broadcast_send(&broadcast);				
-		} else if(ev == CROSS_COMPLETED) {
-			leds_off(LEDS_ALL);
 		} else if(ev == VAL_RECEIVED_EVENT) {
 			if(samples_hum == 3 || samples_temp == 3) {
 				int tmp = (sht11_sensor.value(SHT11_SENSOR_TEMP)/10-396)/10;
 				int hum = sht11_sensor.value(SHT11_SENSOR_HUMIDITY)/41;
-				measurement_t m = {0,tmp,hum};
+				measurement_t m = {tmp,hum};
 				insert_measurement(m,0);
 				compute_averages();
 				display_string();

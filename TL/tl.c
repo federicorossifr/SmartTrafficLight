@@ -162,13 +162,9 @@ PROCESS_THREAD(traffic_sense_light_process, ev, data) {
 			low_active = false;
 		}
 
-		// WHEN A VEHICLE ENDS CROSSING THE ROAD SEND AN ACKNOWLEDGMENT TO GROUND STATIONS
+		// CROSS COMPLETED
 		if(crossing && etimer_expired(&cross_timer)) {
 			crossing = false;
-			comp_measurement_t m = {1};
-			packetbuf_copyfrom(&m,sizeof(m));
-			if(!runicast_is_transmitting(&runicast))
-				runicast_send(&runicast, &ref_ground, MAX_RETRANSMISSIONS);
 			shut_leds(&battery);
 		}
 
