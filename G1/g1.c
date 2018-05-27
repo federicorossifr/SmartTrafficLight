@@ -16,7 +16,6 @@ int last_hum_avg;
 int samples_temp = 0;
 int samples_hum = 0;
 
-bool pending_request = false;
 vehicle_t pending_vehicle;
 
 char* emergency_message = 0;
