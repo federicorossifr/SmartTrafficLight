@@ -53,11 +53,11 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 				leds_on(LEDS_BLUE);
 				pending_vehicle = EMERGENCY;
 				printf("EMERGENCY ON SECOND!!\n");
+				etimer_stop(&second_click_timer);
 		    }
 			else {
 				leds_on(LEDS_RED);
 				pending_vehicle = NORMAL; 
-				etimer_stop(&second_click_timer);
 			}
 			char* v_type = (pending_vehicle == NORMAL)?"n":"e";
 			packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
