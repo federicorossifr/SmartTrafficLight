@@ -5,8 +5,6 @@ static struct broadcast_conn broadcast;
 PROCESS(sense_traffic_control_process, "G2_SENSING_TRAFFIC_PROCESS");
 AUTOSTART_PROCESSES(&sense_traffic_control_process);
 
-
-bool crossing = false;
 vehicle_t pending_vehicle;
 
 /*
@@ -49,7 +47,6 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 	while(true) {
 		PROCESS_WAIT_EVENT();
 		if(ev == sensors_event && data == &button_sensor) {
-			leds_off(LEDS_ALL);			
 			etimer_set(&second_click_timer,CLOCK_SECOND*SECOND_CLICK_WAIT);
 			PROCESS_WAIT_EVENT();
 			if(ev == sensors_event && data == &button_sensor) {
@@ -63,8 +60,6 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 			broadcast_send(&broadcast);				
 		} else if(ev == CROSS_COMPLETED) {
 			leds_off(LEDS_ALL);
-			printf("VEHICLE CROSSED THE ROAD\n");
-			crossing = false;
 		}
 		if(etimer_expired(&base_sense_timer)) {
 			do_sense(&runicast,0);

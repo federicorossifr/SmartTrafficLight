@@ -17,7 +17,6 @@ int samples_temp = 0;
 int samples_hum = 0;
 
 bool pending_request = false;
-bool crossing = false;
 vehicle_t pending_vehicle;
 
 char* emergency_message = 0;
@@ -44,8 +43,6 @@ static void insert_measurement(measurement_t measurement,const linkaddr_t* sende
 		samples_hum++;
 		inserted_hum[index] = true;
 	}
-	if(index != whoami())
-		printf("RECEIVED SAMPLE FROM %d.0 - Temperature:%d Humidity:%d\n",index,measurement.temperature,measurement.humidity);
 }
 
 /*
@@ -111,7 +108,6 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 	while(true) {
 		PROCESS_WAIT_EVENT();
 		if(ev == sensors_event && data == &button_sensor) {
-			leds_off(LEDS_ALL);
 			etimer_set(&second_click_timer,CLOCK_SECOND*SECOND_CLICK_WAIT);
 			PROCESS_WAIT_EVENT();
 			if(ev == sensors_event && data == &button_sensor) {
@@ -125,8 +121,6 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 			packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
 			broadcast_send(&broadcast);				
 		} else if(ev == CROSS_COMPLETED) {
-			printf("VEHICLE CROSSED THE ROAD\n");
-			crossing = false;
 			leds_off(LEDS_ALL);
 		} else if(ev == VAL_RECEIVED_EVENT) {
 			if(samples_hum == 3 || samples_temp == 3) {
