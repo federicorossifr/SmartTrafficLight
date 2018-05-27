@@ -111,12 +111,15 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 			etimer_set(&second_click_timer,CLOCK_SECOND*SECOND_CLICK_WAIT);
 			PROCESS_WAIT_EVENT();
 			if(ev == sensors_event && data == &button_sensor) {
+				leds_on(LEDS_BLUE);				
 				pending_vehicle = EMERGENCY;
-				//SWITCH ON ALL THE LEDS WHEN EMERGENCY -- JUST FOR DEBUG
-				leds_on(LEDS_ALL);				
 				printf("EMERGENCY ON MAIN!!\n");
 		    }
-			else pending_vehicle = NORMAL;
+			else {
+				leds_on(LEDS_RED);
+				pending_vehicle = NORMAL; 
+				etimer_stop(&second_click_timer);
+			}
 			char* v_type = (pending_vehicle == NORMAL)?"n":"e";
 			packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
 			broadcast_send(&broadcast);				
