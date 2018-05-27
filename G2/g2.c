@@ -39,18 +39,20 @@ PROCESS_THREAD(sense_traffic_control_process, ev, data) {
 	while(true) {
 		PROCESS_WAIT_EVENT();
 		if(ev == sensors_event && data == &button_sensor) {
+			leds_on(LEDS_RED);
 			etimer_set(&second_click_timer,CLOCK_SECOND*SECOND_CLICK_WAIT);
 			PROCESS_WAIT_EVENT();
 			if(ev == sensors_event && data == &button_sensor) {
+				leds_off(LEDS_ALL);
 				leds_on(LEDS_BLUE);
 				pending_vehicle = EMERGENCY;
 				printf("EMERGENCY ON SECOND!!\n");
 				etimer_stop(&second_click_timer);
 		    }
 			else {
-				leds_on(LEDS_RED);
 				pending_vehicle = NORMAL; 
 			}
+			leds_off(LEDS_ALL);
 			char* v_type = (pending_vehicle == NORMAL)?"n":"e";
 			packetbuf_copyfrom(v_type,sizeof(char)*(strlen(v_type)+1));	
 			broadcast_send(&broadcast);				
